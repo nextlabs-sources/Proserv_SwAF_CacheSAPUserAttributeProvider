@@ -1,0 +1,117 @@
+<!-- build_xlib.xml
+
+Description:
+	This ANT script constructs <project root>/xlib.
+
+	To use this script, you must update properties is <project root>/scripts/build.properties or overide 
+	them from commandline (using -D option). For example:
+		
+		set PATH=C:\depot\external\apache-ant\apache-ant-1.8.4\bin;%PATH%
+		ant -XX:MaxPermSize=512m -Dnlbuildroot=C:/depot/PolicyStudio/dev/BuildScript_1205 -Dexternal.dir=c:/depot/external -Dnlexternaldir=c:/depot/external -f scripts/build_xlib.xml
+		
+	or
+		
+		set PATH=C:\depot\external\apache-ant\apache-ant-1.8.4\bin;%PATH%
+		set ANT_OPTS=-XX:MaxPermSize=512m -Dnlbuildroot=%NLBUILDROOT% -Dexternal.dir=%NLEXTERNALDIR% -Dnlexternaldir=%NLEXTERNALDIR% 
+		ant -f scripts/build_xlib.xml -v	
+-->
+
+<project name="build_xlib" default="all" basedir=".">
+
+	<!-- Debug 
+	<echoproperties />
+	<fail message="INFO: Debug" />
+	-->
+	
+	<!-- Property files -->
+	<property file="${basedir}/build.properties" />
+	
+	<!-- Global properties -->
+	<property name="xlib_dir" location="${nlbuildroot}/xlib" />
+	<property name="xlib_jar_dir" value="${xlib_dir}/jar" />
+	<property name="lib_dir" location="${nlbuildroot}/lib" />
+	<property name="lib_jar_dir" value="${lib_dir}/jar" />
+	
+	<!-- TBD: psexternaldir is a temporary variable. It will be removed with all files 
+		under lib are extracted automatically from build artifacts. -->
+	<property name="psexternaldir" location="${nlbuildroot}/lib" />
+
+	<!-- Dump properties -->
+	<echoproperties />
+
+	<echo message="INFO: Dump properties completed" />
+	
+	<!-- Sanity checks -->
+	<fail message="nlbuildroot is not set" unless="nlbuildroot" />
+	<fail message="nlbuildroot is empty">
+		<condition>
+			<equals arg1="${nlbuildroot}" arg2="" trim="true" />
+		</condition>
+	</fail>
+	<available file="${nlbuildroot}" type="dir" property="local.nlbuildroot_exists" />
+	<fail message="nlbuildroot directory does not exist - ${nlbuildroot}" unless="local.nlbuildroot_exists" />
+
+	<fail message="nlexternaldir is not set" unless="nlexternaldir" />
+	<fail message="nlexternaldir is empty">
+		<condition>
+			<equals arg1="${nlexternaldir}" arg2="" trim="true" />
+		</condition>
+	</fail>
+	<available file="${nlexternaldir}" type="dir" property="local.nlexternaldir_exists" />
+	<fail message="nlexternaldir directory does not exist - ${nlexternaldir}" unless="local.nlexternaldir_exists" />
+
+	<echo message="INFO: Sanity check completed (no error)" />
+
+	<!-- Targets -->
+	<target name="all" depends="clean, prepare_external_jar, prepare_internal_jar" />
+
+	<target name="prepare_external_jar">
+		<mkdir dir="${xlib_jar_dir}" />
+		<copy file="${nlexternaldir}/ehcache/ehcache-1.1/ehcache-1.1.jar" todir="${xlib_jar_dir}" preservelastmodified="true" overwrite="false" verbose="true" />
+		<copy file="${nlexternaldir}/sapjco/3.0.11/NTia32/sapjco3.jar" todir="${xlib_jar_dir}" preservelastmodified="true" overwrite="false" verbose="true" />
+		<copy file="${nlexternaldir}/sapjco/3.0.11/NTia32/sapjco3.dll" todir="${xlib_jar_dir}" preservelastmodified="true" overwrite="false" verbose="true" />
+		<copy file="${nlexternaldir}/sapjco/3.0.11/NTia32/sapjco3.pdb" todir="${xlib_jar_dir}" preservelastmodified="true" overwrite="false" verbose="true" />
+		
+		
+	</target>
+	
+	<target name="prepare_internal_jar">
+		<mkdir dir="${lib_jar_dir}" />
+		
+		<!--Java CE SDK -->
+		<unzip src="${pc_artifacts_bin_zip_file}" dest="${lib_jar_dir}" overwrite="yes">
+			<patternset>
+				<include name="**/common-framework.jar" />
+				<include name="**/common-framework-types.jar" />
+				<include name="**/common-pf.jar" />
+				<include name="**/crypt.jar" />
+			</patternset>
+			<mapper type="flatten" />
+		</unzip>
+		<unzip src="${pc_artifacts_bin_zip_file_xlib}" dest="${lib_jar_dir}" overwrite="yes">
+			<patternset>
+				<include name="**/commons-logging.jar" />
+			</patternset>
+			<mapper type="flatten" />
+		</unzip>
+		
+		<!-- Check if file exists 
+		Notes: Currently, Unzip task or ZipFileSet does not have a way to report error if a file
+		cannot be found in a zip file. In addition, there is no simple way to check if a file 
+		exists in Ant. We can call out to Bash to check if a file exists, but that creates an
+		unnecessary dependency on Bash. In the following, we try to check if a file exist using
+		a fake move. Doing this, an error will be generated if a file does not exist.
+		-->
+		<move file="${lib_jar_dir}/common-framework.jar" todir="${lib_jar_dir}" preservelastmodified="true" overwrite="false" />
+		<move file="${lib_jar_dir}/common-framework-types.jar" todir="${lib_jar_dir}" preservelastmodified="true" overwrite="false" />
+		<move file="${lib_jar_dir}/common-pf.jar" todir="${lib_jar_dir}" preservelastmodified="true" overwrite="false" />
+		<move file="${lib_jar_dir}/commons-logging.jar" todir="${lib_jar_dir}" preservelastmodified="true" overwrite="false" />
+		<move file="${lib_jar_dir}/crypt.jar" todir="${lib_jar_dir}" preservelastmodified="true" overwrite="false" />
+	</target>
+	
+	<target name="clean">
+		<delete dir="${lib_dir}" />
+		<delete dir="${xlib_dir}" />
+	</target>
+</project>
+
